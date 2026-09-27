@@ -59,7 +59,7 @@ window.StockAPI = (() => {
     const t=ticker.trim().toUpperCase(); if (!/^[A-Z0-9][A-Z0-9.-]{0,14}$/.test(t)) throw new Error('Ticker format looks invalid. Try a symbol such as AAPL or PTT.BK.');
     try {
       const live=await fetchYahoo(t);
-      AppState.isMock = false;
+      AppState.isMock = live.dataMode !== 'live';
       return live;
     } catch (err) {
       // Network, CORS proxy, HTTP, parsing and missing-ticker failures all use the demo engine.

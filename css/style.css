@@ -429,7 +429,7 @@ a.pill svg path {
 }
 
 /* Headline */
-h1 {
+main.hero h1 {
     position: absolute;
     left: calc(0.6 * var(--u));
     right: calc(-0.6 * var(--u));
@@ -512,7 +512,8 @@ div.cta {
     }
 
     nav.links,
-    header.bar .actions .btn.solid {
+    header.bar .actions .btn.solid,
+    header.bar .actions > a.btn.ghost {
         display: none;
     }
 

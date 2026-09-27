@@ -16,7 +16,7 @@ const toCompany = row => ({
     cfo: Number(statement.operating_cash_flow), capex: Number(statement.capital_expenditure),
     fcf: Number(statement.free_cash_flow), interestExpense: Number(statement.interest_expense),
     shares: Number(statement.diluted_shares), dividends: Number(statement.dividends_per_share)
-  }))
+  })).sort((a, b) => a.year - b.year).slice(-5)
 });
 
 export async function findFreshCompany(ticker, ttlSeconds) {
