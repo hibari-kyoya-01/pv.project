@@ -1,0 +1,19 @@
+stock-fundamental-analyzer/
+│
+├── index.html              # โครงสร้างหน้าเว็บ (HTML Structure & UX Layout)
+│
+├── css/
+│   └── style.css           # สไตล์และการตกแต่ง Custom UI, Dark Mode, Animations
+│
+├── js/
+│   ├── config.js           # ค่า Config, API Endpoints, App State
+│   ├── api.js              # Fetching Service & Fallback Mock Data Engine
+│   ├── calculators.js      # คำนวณอัตราส่วนทางการเงินย้อนหลัง 5 ปี (Growth, Margin, Debt, Valuation)
+│   ├── analyzers.js        # อัลกอริทึม Buffett Moat Rules & Lynch Classification Logic
+│   ├── ui.js               # Render DOM, Sticky Tabs, Table Color-Coding, Status Updates
+│   └── app.js              # Controller หลัก เชื่อม Event Listeners และ Workflow ทั้งหมด
+│
+├── skills/
+│   └── stock_analysis.md   # SOP Framework สำหรับนักวิเคราะห์ AI (Buffett & Lynch)
+│
+└── README.md               # เอกสารอธิบายวิธีรันโปรเจกต์
