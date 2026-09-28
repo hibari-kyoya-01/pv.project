@@ -17,7 +17,7 @@ export async function requireFirebaseUser(req, res, next) {
   const match = authorization.match(/^Bearer\s+(.+)$/i);
   if (!match) return res.status(401).json({ error: 'Sign in to access your watchlist.' });
   try {
-    req.firebaseUser = await firebaseAuth.verifyIdToken(match[1], true);
+    req.firebaseUser = await firebaseAuth.verifyIdToken(match[1], req.method === 'PUT' || req.method === 'DELETE');
     return next();
   } catch {
     return res.status(401).json({ error: 'Your sign-in token is invalid or expired. Sign in again.' });

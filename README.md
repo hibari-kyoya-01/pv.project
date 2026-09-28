@@ -6,7 +6,7 @@ A modular single-page stock research app with a Node.js/Express API, PostgreSQL 
 
 - Node.js 22 or newer and npm.
 - PostgreSQL 14 or newer for durable SQL caching and watchlists. The server can start without PostgreSQL; stock lookups then use a short-lived process-memory cache, while watchlist endpoints return `503`.
-- A Financial Modeling Prep API key is optional. Without it, the server tries Yahoo Finance through AllOrigins. If both providers fail, simulated data is enabled by default outside production only; set `DEMO_FALLBACK` explicitly to override this.
+- A Financial Modeling Prep API key is optional. Yahoo Finance is disabled unless `YAHOO_ENABLED=true`; when enabled, requests go directly to Yahoo and depend on its unofficial cookie/crumb and statement endpoints. If all enabled providers fail, simulated data is enabled by default outside production only; set `DEMO_FALLBACK` explicitly to override this.
 - Firebase project credentials are required to enable sign-in and watchlists. No credentials are included in source control.
 
 ## Local development
@@ -31,7 +31,8 @@ A modular single-page stock research app with a Node.js/Express API, PostgreSQL 
    npm run db:schema
    ```
 
-4. Configure market data. Set `FMP_API_KEY` for the primary provider. If it is omitted, Yahoo Finance via the public AllOrigins proxy is attempted. `DEMO_FALLBACK` defaults to true outside production and false in production. Set it explicitly to `true` or `false` to override.
+4. Configure market data. Set `FMP_API_KEY` for the primary provider. Set `YAHOO_ENABLED=true` to enable Yahoo Finance as a direct fallback. Yahoo is unofficial and may deny requests or omit annual statement modules. `DEMO_FALLBACK` defaults to true outside production and false in production. Set it explicitly to `true` or `false` to override.
+5. If the app is behind a trusted reverse proxy, set `TRUST_PROXY=true`; leave it false for direct deployments. This setting controls Express client IP detection and rate limits.
 
 5. To enable Firebase Auth and watchlists, create a Firebase Web App and a Firebase Admin service account. Enable Email/Password in Firebase Authentication. Set these environment values:
 
@@ -64,7 +65,7 @@ server/
   config.js
   db/pool.js
   middleware/         Firebase ID-token verification
-  providers/          FMP primary and Yahoo/AllOrigins fallback
+  providers/          FMP primary and optional direct Yahoo fallback
   repositories/       PostgreSQL company cache and watchlist queries
   routes/             Stock and watchlist endpoints
   services/           Provider fallback, mock data, calculations and analyses
@@ -78,7 +79,7 @@ The root `index.html` keeps the Orbit Stock landing page and includes the full a
 
 - `GET /api/health` — server, PostgreSQL and optional provider/auth configuration status.
 - `GET /api/config` — public Firebase web config only when both the web app and Admin credentials are configured.
-- `GET /api/stocks/:ticker` — cache-first quote/statements, calculated ratios, Buffett/Lynch analyses and flags. Provider priority is PostgreSQL cache, in-memory cache, FMP, Yahoo through AllOrigins, then simulated data when enabled.
+- `GET /api/stocks/:ticker` — cache-first quote/statements, calculated ratios, Buffett/Lynch analyses and flags. Provider priority is PostgreSQL cache, in-memory cache, FMP, optional Yahoo, then simulated data when enabled. Stock analysis has a separate 20 requests/minute/IP limit.
 - `GET /api/watchlist` — list the signed-in Firebase user's tickers.
 - `PUT /api/watchlist/:ticker` — fetch/cache a ticker and add it for the signed-in user.
 - `DELETE /api/watchlist/:ticker` — remove a ticker for the signed-in user.
@@ -87,7 +88,7 @@ Watchlist routes require `Authorization: Bearer <Firebase ID token>`; the authen
 
 ## Data and calculation notes
 
-Analysis rules and caveats are specified in [`skills/stock_analysis.md`](skills/stock_analysis.md). Backend calculations are the canonical API output; the client retains a matching calculation path for offline/mock fallback. Data sources and simulated status are returned separately. Financial statements are kept in source currency and fiscal year; the app does not silently convert currencies.
+Analysis rules and caveats are specified in [`skills/stock_analysis.md`](skills/stock_analysis.md). Backend calculations are the canonical API output. Data sources and simulated status are returned separately. Financial statements are kept in source currency and fiscal year; the app does not silently convert currencies.
 
 - Revenue/EPS/book-value CAGR uses the actual fiscal-year difference between first and last observations.
 - ROIC uses estimated NOPAT at a 21% tax rate and invested capital; EBITDA is approximated from operating income. These are explicitly estimated ratios.

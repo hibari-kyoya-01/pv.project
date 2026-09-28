@@ -13,7 +13,8 @@ export const config = Object.freeze({
     ? (process.env.NODE_ENV || 'development') !== 'production'
     : process.env.DEMO_FALLBACK === 'true',
   fmpApiKey: process.env.FMP_API_KEY || '',
-  yahooCorsProxy: process.env.YAHOO_CORS_PROXY || 'https://api.allorigins.win/raw?url=',
+  yahooEnabled: process.env.YAHOO_ENABLED === 'true',
+  trustProxy: process.env.TRUST_PROXY === 'true',
   firebase: Object.freeze({
     projectId: process.env.FIREBASE_PROJECT_ID || '',
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',

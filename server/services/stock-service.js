@@ -2,7 +2,7 @@ import { config } from '../config.js';
 import { pool } from '../db/pool.js';
 import { fetchFmpCompany } from '../providers/fmp.js';
 import { fetchYahooCompany } from '../providers/yahoo.js';
-import { findFreshCompany, saveCompany } from '../repositories/company-repository.js';
+import { companyExists, findFreshCompany, saveCompany } from '../repositories/company-repository.js';
 import { analyzeCompany } from './analysis-engine.js';
 import { createMockCompany } from './mock-provider.js';
 
@@ -12,7 +12,7 @@ const inFlight = new Map();
 const memoryTtlMs = Math.min(config.cacheTtlSeconds, 900) * 1000;
 const providers = [
   ['Financial Modeling Prep', ticker => fetchFmpCompany(ticker, config.fmpApiKey)],
-  ['Yahoo Finance', fetchYahooCompany]
+  ...(config.yahooEnabled ? [['Yahoo Finance', fetchYahooCompany]] : [])
 ];
 
 export function normalizeTicker(input) {
@@ -84,5 +84,24 @@ export async function getStockAnalysis(inputTicker) {
 }
 
 export async function getCompanyForWatchlist(inputTicker) {
-  return getStockAnalysis(inputTicker);
+  const ticker = normalizeTicker(inputTicker);
+  if (!pool) {
+    const error = new Error('Watchlists require a configured PostgreSQL database.');
+    error.status = 503;
+    throw error;
+  }
+  if (await companyExists(ticker)) return;
+  const company = await fromProvider(ticker);
+  if (company.dataMode === 'simulated') {
+    const error = new Error('This ticker could not be saved to the watchlist because only simulated company data is available.');
+    error.status = 503;
+    throw error;
+  }
+  try { await saveCompany(company, []); }
+  catch (cause) {
+    const error = new Error('The company data could not be saved, so this ticker was not added to the watchlist. Check the database connection and try again.');
+    error.status = 503;
+    error.cause = cause;
+    throw error;
+  }
 }

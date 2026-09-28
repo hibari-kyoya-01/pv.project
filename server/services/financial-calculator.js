@@ -70,7 +70,7 @@ export function calculateFinancials(company) {
     pb: divide(company.price, latest.bvps), ps: divide(company.marketCap, latest.revenue),
     evEbitda: divide(company.marketCap + latest.debt - latest.cash, ebitdaProxy),
     pFcf: divide(company.marketCap, latest.fcf),
-    dividendYield: Number.isFinite(company.dividendYield) ? company.dividendYield * 100 : finite(divide(latest.dividends, company.price) * 100),
+    dividendYield: Number.isFinite(company.dividendYield) && company.dividendYield > 0 ? company.dividendYield * 100 : finite(divide(latest.dividends, company.price) * 100),
     dividendPayout: finite(divide(latest.dividends, latest.eps) * 100)
   };
   const values = key => rows.map(row => row[key]);

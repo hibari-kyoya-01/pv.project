@@ -42,6 +42,12 @@ export async function findFreshCompany(ticker, ttlSeconds) {
   return row ? toCompany(row) : null;
 }
 
+export async function companyExists(ticker) {
+  if (!pool) return false;
+  const result = await pool.query('SELECT 1 FROM companies WHERE ticker=$1', [ticker]);
+  return result.rowCount > 0;
+}
+
 export async function saveCompany(company, ratioRows) {
   if (!pool) return false;
   const client = await pool.connect();
