@@ -6,7 +6,7 @@ A modular single-page stock research app with a Node.js/Express API, PostgreSQL 
 
 - Node.js 22 or newer and npm.
 - PostgreSQL 14 or newer for durable SQL caching and watchlists. The server can start without PostgreSQL; stock lookups then use a short-lived process-memory cache, while watchlist endpoints return `503`.
-- A Financial Modeling Prep API key is optional. Without it, the server tries Yahoo Finance through AllOrigins. If both providers fail and `DEMO_FALLBACK=true`, it responds with clearly marked simulated data.
+- A Financial Modeling Prep API key is optional. Without it, the server tries Yahoo Finance through AllOrigins. If both providers fail, simulated data is enabled by default outside production only; set `DEMO_FALLBACK` explicitly to override this.
 - Firebase project credentials are required to enable sign-in and watchlists. No credentials are included in source control.
 
 ## Local development
@@ -31,7 +31,7 @@ A modular single-page stock research app with a Node.js/Express API, PostgreSQL 
    npm run db:schema
    ```
 
-4. Configure market data. Set `FMP_API_KEY` for the primary provider. If it is omitted, Yahoo Finance via the public AllOrigins proxy is attempted. Keep `DEMO_FALLBACK=true` for local exploration; use `false` where simulated records must never be served.
+4. Configure market data. Set `FMP_API_KEY` for the primary provider. If it is omitted, Yahoo Finance via the public AllOrigins proxy is attempted. `DEMO_FALLBACK` defaults to true outside production and false in production. Set it explicitly to `true` or `false` to override.
 
 5. To enable Firebase Auth and watchlists, create a Firebase Web App and a Firebase Admin service account. Enable Email/Password in Firebase Authentication. Set these environment values:
 

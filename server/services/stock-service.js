@@ -8,6 +8,7 @@ import { createMockCompany } from './mock-provider.js';
 
 const TICKER_PATTERN = /^[A-Z0-9][A-Z0-9.-]{0,14}$/;
 const memoryCache = new Map();
+const inFlight = new Map();
 const memoryTtlMs = Math.min(config.cacheTtlSeconds, 900) * 1000;
 const providers = [
   ['Financial Modeling Prep', ticker => fetchFmpCompany(ticker, config.fmpApiKey)],
@@ -60,18 +61,26 @@ export async function getStockAnalysis(inputTicker) {
   const cached = memoryCache.get(ticker);
   if (cached && cached.expiresAt > Date.now()) return { ...analyzeCompany(cached.company), cache: 'memory', fetchedAt: cached.fetchedAt };
 
-  const company = await fromProvider(ticker);
-  const analyzed = analyzeCompany(company);
-  const fetchedAt = new Date().toISOString();
-  memoryCache.set(ticker, { company, fetchedAt, expiresAt: Date.now() + memoryTtlMs });
-  if (pool) {
-    try {
-      await saveCompany(company, analyzed.calculated.rows.map(row => ({ year: row.year, ratios: Object.fromEntries(Object.entries(row).filter(([key]) => /Margin$|^roe$|^roa$|^roic$|Ratio$|^debtEquity$|^netDebtEbitda$|^interestCoverage$|^cfoNetIncome$|^fcfYield$|^capexCfo$/.test(key))) })));
-    } catch (error) {
-      console.error('PostgreSQL cache write failed; retaining the in-memory result:', error.message);
+  if (inFlight.has(ticker)) return inFlight.get(ticker);
+  const pending = (async () => {
+    const company = await fromProvider(ticker);
+    const analyzed = analyzeCompany(company);
+    const fetchedAt = new Date().toISOString();
+    if (company.dataMode !== 'simulated') {
+      memoryCache.set(ticker, { company, fetchedAt, expiresAt: Date.now() + memoryTtlMs });
+      if (pool) {
+        try {
+          await saveCompany(company, analyzed.calculated.rows.map(row => ({ year: row.year, ratios: Object.fromEntries(Object.entries(row).filter(([key]) => /Margin$|^roe$|^roa$|^roic$|Ratio$|^debtEquity$|^netDebtEbitda$|^interestCoverage$|^cfoNetIncome$|^fcfYield$|^capexCfo$/.test(key))) })));
+        } catch (error) {
+          console.error('PostgreSQL cache write failed; retaining the in-memory result:', error.message);
+        }
+      }
     }
-  }
-  return { ...analyzed, cache: 'miss', fetchedAt };
+    return { ...analyzed, cache: 'miss', fetchedAt };
+  })();
+  inFlight.set(ticker, pending);
+  try { return await pending; }
+  finally { inFlight.delete(ticker); }
 }
 
 export async function getCompanyForWatchlist(inputTicker) {

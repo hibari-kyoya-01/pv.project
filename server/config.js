@@ -9,7 +9,9 @@ export const config = Object.freeze({
   databaseUrl: process.env.DATABASE_URL || '',
   pgSsl: process.env.PGSSL === 'true',
   cacheTtlSeconds: integer(process.env.CACHE_TTL_SECONDS, 21_600, 60, 2_592_000),
-  demoFallback: process.env.DEMO_FALLBACK !== 'false',
+  demoFallback: process.env.DEMO_FALLBACK === undefined
+    ? (process.env.NODE_ENV || 'development') !== 'production'
+    : process.env.DEMO_FALLBACK === 'true',
   fmpApiKey: process.env.FMP_API_KEY || '',
   yahooCorsProxy: process.env.YAHOO_CORS_PROXY || 'https://api.allorigins.win/raw?url=',
   firebase: Object.freeze({

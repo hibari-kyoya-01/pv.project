@@ -1,12 +1,9 @@
+import { calculateFinancials } from './financial-calculator.js';
 const finite = Number.isFinite;
-const median = values => {
-  const sorted = values.filter(finite).sort((a, b) => a - b);
-  if (!sorted.length) return 0;
-  return sorted[Math.floor(sorted.length / 2)];
-};
 const fmt = (value, suffix = '') => finite(value) ? `${value.toFixed(1)}${suffix}` : 'N/A';
 const pass = (label, detail) => ({ label, detail, ok: true });
 const review = (label, detail) => ({ label, detail, ok: false });
+const insufficient = (label, detail) => ({ label, detail, ok: null });
 
 export function analyzeBuffett(calculated) {
   const { company, rows, latest, ratios, metrics } = calculated;
@@ -20,16 +17,16 @@ export function analyzeBuffett(calculated) {
     ? pass('Capital efficiency', `ROE and estimated ROIC both exceeded 15% in ${returnYears} years.`)
     : review('Capital efficiency', `Both ROE and estimated ROIC exceeded 15% in ${returnYears} of ${rows.length} years.`));
   const debtYears = latest.netIncome > 0 ? latest.debt / latest.netIncome : null;
-  checks.push(finite(debtYears) && debtYears < 4
+  checks.push(!finite(debtYears) ? insufficient('Debt repayment capacity', 'Insufficient earnings data to estimate debt payback.') : debtYears < 4
     ? pass('Debt repayment capacity', `Debt is about ${fmt(debtYears)} years of current net income.`)
     : review('Debt repayment capacity', finite(debtYears) ? `Debt is about ${fmt(debtYears)} years of net income (reference < 4).` : 'Debt payback cannot be estimated from current earnings.'));
-  checks.push(ratios.interestCoverage >= 5
+  checks.push(!finite(ratios.interestCoverage) ? insufficient('Interest coverage', 'Insufficient interest expense or operating income data.') : ratios.interestCoverage >= 5
     ? pass('Interest coverage', `${fmt(ratios.interestCoverage, '×')} operating-income coverage.`)
     : review('Interest coverage', `${fmt(ratios.interestCoverage, '×')} coverage; above 5× is the reference level.`));
-  checks.push(ratios.capexCfo < 50
+  checks.push(!finite(ratios.capexCfo) ? insufficient('Reinvestment burden', 'Insufficient CapEx or CFO data.') : ratios.capexCfo < 50
     ? pass('Reinvestment burden', `CapEx is ${fmt(ratios.capexCfo, '%')} of CFO.`)
     : review('Reinvestment burden', `CapEx is ${fmt(ratios.capexCfo, '%')} of CFO.`));
-  checks.push(ratios.cfoNetIncome >= 1
+  checks.push(!finite(ratios.cfoNetIncome) ? insufficient('Cash earnings quality', 'Insufficient CFO or net income data.') : ratios.cfoNetIncome >= 1
     ? pass('Cash earnings quality', `CFO is ${fmt(ratios.cfoNetIncome, '×')} net income.`)
     : review('Cash earnings quality', `CFO is ${fmt(ratios.cfoNetIncome, '×')} net income.`));
   const ownerEarnings = Math.max(0, metrics.avgFcf ?? 0);
@@ -41,8 +38,8 @@ export function analyzeBuffett(calculated) {
   enterpriseValue += ownerEarnings * ((1 + growth) ** 10) * terminalMultiple / ((1 + discountRate) ** 10);
   const fairValuePerShare = company.shares > 0 ? enterpriseValue / company.shares : null;
   return {
-    score: Math.round(checks.filter(check => check.ok).length / checks.length * 100),
-    verdict: checks.filter(check => check.ok).length >= 5 ? 'Durable quality signals' : checks.filter(check => check.ok).length >= 3 ? 'Mixed quality signals' : 'Several quality tests need review',
+    score: Math.round(checks.filter(check => check.ok === true).length / Math.max(1, checks.filter(check => check.ok !== null).length) * 100),
+    verdict: checks.filter(check => check.ok === true).length >= 5 ? 'Durable quality signals' : checks.filter(check => check.ok === true).length >= 3 ? 'Mixed quality signals' : 'Several quality tests need review',
     checks, debtYears, ownerEarnings, ownerEarningsPerShare: company.shares > 0 ? ownerEarnings / company.shares : null,
     oeps: company.shares > 0 ? ownerEarnings / company.shares : null,
     fairValuePerShare, fairValue: fairValuePerShare,
@@ -73,8 +70,11 @@ export function analyzeLynch(calculated) {
     category = 'Stalwarts'; reason = `Estimated EPS CAGR is ${fmt(metrics.epsGrowth, '%')}, consistent with a steadier profile.`;
   } else if ((metrics.epsGrowth ?? -Infinity) >= 0 && (metrics.epsGrowth ?? Infinity) <= 5 && ratios.dividendYield >= 3) {
     category = 'Slow Growers'; reason = 'Low earnings growth and a meaningful yield fit a slow-grower profile.';
+  } else if (latest.netIncome <= 0 || metrics.epsGrowth == null) {
+    category = 'Unclassified'; reason = latest.netIncome <= 0 ? 'Latest reported year is loss-making, so the earnings profile cannot be classified.' : 'EPS growth is unavailable, so the earnings profile cannot be classified.';
   }
-  const dividendAdjustedPeg = finite(ratios.peg) ? (ratios.pe - (ratios.dividendYield || 0)) / (metrics.epsGrowth || 1) : null;
+  const pegDenominator = metrics.epsGrowth + ratios.dividendYield;
+  const dividendAdjustedPeg = finite(ratios.pe) && finite(pegDenominator) && pegDenominator > 0 ? ratios.pe / pegDenominator : null;
   const inventoryAlert = finite(metrics.inventoryGrowth) && finite(metrics.salesGrowth) && metrics.inventoryGrowth > metrics.salesGrowth + 5;
   return {
     category, reason, epsGrowth: metrics.epsGrowth, peg: ratios.peg, dividendAdjustedPeg, divAdjPeg: dividendAdjustedPeg,
@@ -88,18 +88,18 @@ export function analyzeFlags(calculated, buffett, lynch) {
   const green = [];
   const red = [];
   if (metrics.growth > 5) green.push(`Revenue CAGR is approximately ${fmt(metrics.growth, '%')} over the available history.`);
-  if (ratios.roe > 15 && ratios.roic > 15) green.push('Latest ROE and estimated ROIC exceed 15%.');
+  if (finite(ratios.roe) && finite(ratios.roic) && ratios.roe > 15 && ratios.roic > 15) green.push('Latest ROE and estimated ROIC exceed 15%.');
   if (ratios.fcfMargin > 10) green.push(`FCF margin is ${fmt(ratios.fcfMargin, '%')}.`);
-  if (ratios.debtEquity < 0.5) green.push(`Debt/equity is ${fmt(ratios.debtEquity, '×')}.`);
+  if (finite(ratios.debtEquity) && ratios.debtEquity < 0.5) green.push(`Debt/equity is ${fmt(ratios.debtEquity, '×')}.`);
   if (buffett.score >= 67) green.push('Most checks in the selected quality screen pass.');
   if (!green.length) green.push('No major quantitative green flag met the screening thresholds. Review primary filings.');
-  if (ratios.currentRatio < 1) red.push(`Current ratio is ${fmt(ratios.currentRatio, '×')}, below 1.0.`);
-  if (ratios.interestCoverage < 3) red.push(`Interest coverage is ${fmt(ratios.interestCoverage, '×')}; review debt service and refinancing risk.`);
-  if (ratios.cfoNetIncome < 0.8) red.push(`CFO is below net income (${fmt(ratios.cfoNetIncome, '×')}).`);
+  if (finite(ratios.currentRatio) && ratios.currentRatio < 1) red.push(`Current ratio is ${fmt(ratios.currentRatio, '×')}, below 1.0.`);
+  if (finite(ratios.interestCoverage) && ratios.interestCoverage < 3) red.push(`Interest coverage is ${fmt(ratios.interestCoverage, '×')}; review debt service and refinancing risk.`);
+  if (finite(ratios.cfoNetIncome) && ratios.cfoNetIncome < 0.8) red.push(`CFO is below net income (${fmt(ratios.cfoNetIncome, '×')}).`);
   if (metrics.shareChange > 3) red.push(`Diluted share count increased ${fmt(metrics.shareChange, '%')} across this sample.`);
   if (lynch.inventoryAlert) red.push(`Inventory growth (${fmt(lynch.inventoryGrowth, '%')}) exceeded sales growth (${fmt(lynch.salesGrowth, '%')}).`);
-  if (ratios.pe > 35) red.push(`P/E is elevated at ${fmt(ratios.pe, '×')}; valuation depends on future growth.`);
-  if (ratios.debtEquity > 1) red.push(`Debt/equity is ${fmt(ratios.debtEquity, '×')}, above 1.0.`);
+  if (finite(ratios.pe) && ratios.pe > 35) red.push(`P/E is elevated at ${fmt(ratios.pe, '×')}; valuation depends on future growth.`);
+  if (finite(ratios.debtEquity) && ratios.debtEquity > 1) red.push(`Debt/equity is ${fmt(ratios.debtEquity, '×')}, above 1.0.`);
   if (company.dataMode === 'simulated') red.push('Displayed financials are simulated, not verified company filings or market data.');
   if (!red.length) red.push('No major red flag met these thresholds. Simple screens can miss company-specific risks.');
   return { green, red };
@@ -111,4 +111,3 @@ export function analyzeCompany(company) {
   const lynch = analyzeLynch(calculated);
   return { calculated, analysis: { buffett, lynch, flags: analyzeFlags(calculated, buffett, lynch) } };
 }
-import { calculateFinancials } from './financial-calculator.js';

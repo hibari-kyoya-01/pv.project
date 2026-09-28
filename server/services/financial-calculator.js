@@ -35,7 +35,7 @@ export function calculateFinancials(company) {
     row.roa = finite(divide(row.netIncome, row.assets) * 100);
     const investedCapital = row.equity + row.debt - row.cash;
     row.roic = finite(divide(row.operatingIncome * 0.79, investedCapital) * 100);
-    row.currentRatio = divide(row.currentAssets, row.currentLiabilities);
+    row.currentRatio = row.currentAssets > 0 ? divide(row.currentAssets, row.currentLiabilities) : null;
     row.quickRatio = divide(row.currentAssets - row.inventory, row.currentLiabilities);
     row.debtEquity = divide(row.debt, row.equity);
     const ebitdaProxy = row.operatingIncome * 1.15;

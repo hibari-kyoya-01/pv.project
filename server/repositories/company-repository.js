@@ -35,7 +35,7 @@ export async function findFreshCompany(ticker, ttlSeconds) {
       ) ORDER BY fs.fiscal_year) FILTER (WHERE fs.id IS NOT NULL), '[]'::json) AS statements
     FROM companies c
     LEFT JOIN financial_statements fs ON fs.ticker = c.ticker
-    WHERE c.ticker = $1 AND c.last_fetched_at > NOW() - ($2 * INTERVAL '1 second')
+    WHERE c.ticker = $1 AND c.data_mode <> 'simulated' AND c.last_fetched_at > NOW() - ($2 * INTERVAL '1 second')
     GROUP BY c.ticker
   `, [ticker, ttlSeconds]);
   const row = result.rows[0];
