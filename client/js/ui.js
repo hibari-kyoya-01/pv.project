@@ -4,7 +4,7 @@ window.StockUI = (() => {
   const num=(n,d=1)=>Number.isFinite(n)?new Intl.NumberFormat('en-US',{maximumFractionDigits:d,minimumFractionDigits:d}).format(n):'N/A';
   const compact=(n,c='USD')=>Number.isFinite(n)?`${AppConfig.currencySymbols[c]||c+' '}${Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(n)}`:'N/A';
   const percent=n=>Number.isFinite(n)?`${num(n,1)}%`:'N/A';
-  function setView(view){['landing','loadingView','dashboard'].forEach(id=>{const el=$(id);el.classList.toggle('hidden',id!==view);el.classList.toggle('active-view',id===view);if(id==='loadingView')el.classList.toggle('flex',id===view)});window.scrollTo({top:0,behavior:'smooth'});}
+  function setView(view){['landing','loadingView','dashboard'].forEach(id=>{const el=$(id);el.classList.toggle('hidden',id!==view);el.classList.toggle('active-view',id===view);if(id==='loadingView')el.classList.toggle('flex',id===view)});const dashboardHeader=$('dashboardHeader');if(dashboardHeader)dashboardHeader.classList.toggle('hidden',view==='landing');window.scrollTo({top:0,behavior:'smooth'});}
   function loading(step){const labels=[['Fetching Income Statement...','Connecting to quote and statement sources',22],['Calculating ROE & ROIC Trends...','Normalizing five years of financial history',53],['Applying Buffett & Lynch Rules...','Scoring quality, growth and valuation signals',82]];const x=labels[Math.min(step,labels.length-1)];$('loadingTitle').textContent=x[0];$('loadingSub').textContent=x[1];$('loadingProgress').style.width=x[2]+'%';}
   function error(message){const el=$('searchError');el.textContent=message;el.classList.remove('hidden');}
   function clearError(){$('searchError').classList.add('hidden');}

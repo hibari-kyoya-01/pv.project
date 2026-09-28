@@ -111,21 +111,23 @@
     document.getElementById('authUserPanel').classList.toggle('hidden', !user);
     document.getElementById('authDialogTitle').textContent = user ? 'Your account and watchlist' : 'Sign in to sync your watchlist';
     document.getElementById('authUserEmail').textContent = user?.email || '';
-    document.getElementById('authOpen').textContent = user ? `Watchlist · ${user.email}` : 'Sign in / Watchlist';
+    document.querySelectorAll('#authOpen,#dashboardAuthOpen').forEach(button => { button.textContent = user ? `Watchlist · ${user.email}` : 'Sign in / Watchlist'; });
     document.getElementById('watchlistAdd').disabled = !user;
     document.getElementById('watchlistAdd').title = user ? 'Save or remove this ticker' : 'Sign in to save tickers';
     if (user) refreshWatchlist();
   }
   async function boot() {
-    for (const id of ['authFormPanel','authUserPanel','authDialogTitle','authUserEmail','authOpen','watchlistAdd']) {
+    for (const id of ['authFormPanel','authUserPanel','authDialogTitle','authUserEmail','watchlistAdd']) {
       if (!document.getElementById(id)) return;
     }
+    const authOpenButtons = document.querySelectorAll('#authOpen,#dashboardAuthOpen');
+    if (!authOpenButtons.length) return;
     const response = await fetch('/api/config');
     const data = await response.json();
     enabled = Boolean(data.authEnabled && data.firebase?.apiKey);
     firebaseConfig = data.firebase;
     document.getElementById('authDisabled').classList.toggle('hidden', enabled);
-    document.getElementById('authOpen').addEventListener('click', openDialog);
+    authOpenButtons.forEach(button => button.addEventListener('click', openDialog));
     document.getElementById('watchlistAdd').addEventListener('click', async () => {
       if (!api.user) { openDialog(); return; }
       const ticker = window.AppState?.ticker;
