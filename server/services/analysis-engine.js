@@ -8,8 +8,8 @@ const insufficient = (label, detail) => ({ label, detail, ok: null });
 export function analyzeBuffett(calculated) {
   const { company, rows, latest, ratios, metrics } = calculated;
   const checks = [];
-  const grossYears = rows.filter(row => row.grossMargin >= 40).length;
-  const returnYears = rows.filter(row => row.roe >= 15 && row.roic >= 15).length;
+  const grossYears = rows.filter(row => finite(row.grossMargin) && row.grossMargin >= 40).length;
+  const returnYears = rows.filter(row => finite(row.roe) && finite(row.roic) && row.roe >= 15 && row.roic >= 15).length;
   checks.push(grossYears >= Math.min(4, rows.length)
     ? pass('Pricing power / gross margin', `${grossYears} of ${rows.length} years at or above 40%.`)
     : review('Pricing power / gross margin', `${grossYears} of ${rows.length} years at or above the 40% reference level.`));
@@ -73,7 +73,7 @@ export function analyzeLynch(calculated) {
   } else if (latest.netIncome <= 0 || metrics.epsGrowth == null) {
     category = 'Unclassified'; reason = latest.netIncome <= 0 ? 'Latest reported year is loss-making, so the earnings profile cannot be classified.' : 'EPS growth is unavailable, so the earnings profile cannot be classified.';
   }
-  const pegDenominator = metrics.epsGrowth + ratios.dividendYield;
+  const pegDenominator = finite(metrics.epsGrowth) && finite(ratios.dividendYield) ? metrics.epsGrowth + ratios.dividendYield : null;
   const dividendAdjustedPeg = finite(ratios.pe) && finite(pegDenominator) && pegDenominator > 0 ? ratios.pe / pegDenominator : null;
   const inventoryAlert = finite(metrics.inventoryGrowth) && finite(metrics.salesGrowth) && metrics.inventoryGrowth > metrics.salesGrowth + 5;
   return {

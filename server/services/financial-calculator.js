@@ -1,4 +1,5 @@
 const divide = (numerator, denominator) => Number.isFinite(numerator) && Number.isFinite(denominator) && denominator !== 0 ? numerator / denominator : null;
+const scale = (value, multiplier) => Number.isFinite(value) ? value * multiplier : null;
 const percentChange = (current, previous) => Number.isFinite(current) && Number.isFinite(previous) && previous !== 0 ? (current / previous - 1) * 100 : null;
 const cagr = (first, last, periods) => first > 0 && last > 0 && periods > 0 ? (Math.pow(last / first, 1 / periods) - 1) * 100 : null;
 const median = values => {
@@ -7,17 +8,6 @@ const median = values => {
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 };
-const finite = value => Number.isFinite(value) ? value : null;
-
-export function directionTrend(values, higherIsBetter = true) {
-  const valid = values.filter(Number.isFinite);
-  if (valid.length < 2) return 'stable';
-  const delta = valid.at(-1) - valid[0];
-  const threshold = Math.max(0.025, Math.abs(valid[0]) * 0.04);
-  if (Math.abs(delta) <= threshold) return 'stable';
-  return (delta > 0) === higherIsBetter ? 'improving' : 'deteriorating';
-}
-
 export function calculateFinancials(company) {
   if (!company || !Array.isArray(company.rows) || company.rows.length < 2) {
     throw new Error('At least two annual financial statement rows are required for analysis.');
@@ -28,23 +18,24 @@ export function calculateFinancials(company) {
     const previous = rows[index - 1];
     row.yoyRevenue = percentChange(row.revenue, previous?.revenue);
     row.yoyEps = percentChange(row.eps, previous?.eps);
-    row.grossMargin = finite(divide(row.grossProfit, row.revenue) * 100);
-    row.operatingMargin = finite(divide(row.operatingIncome, row.revenue) * 100);
-    row.netMargin = finite(divide(row.netIncome, row.revenue) * 100);
-    row.roe = finite(divide(row.netIncome, row.equity) * 100);
-    row.roa = finite(divide(row.netIncome, row.assets) * 100);
-    const investedCapital = row.equity + row.debt - row.cash;
-    row.roic = finite(divide(row.operatingIncome * 0.79, investedCapital) * 100);
+    row.grossMargin = scale(divide(row.grossProfit, row.revenue), 100);
+    row.operatingMargin = scale(divide(row.operatingIncome, row.revenue), 100);
+    row.netMargin = scale(divide(row.netIncome, row.revenue), 100);
+    row.roe = scale(divide(row.netIncome, row.equity), 100);
+    row.roa = scale(divide(row.netIncome, row.assets), 100);
+    const investedCapital = [row.equity, row.debt, row.cash].every(Number.isFinite) ? row.equity + row.debt - row.cash : null;
+    row.roic = scale(divide(row.operatingIncome * 0.79, investedCapital), 100);
     row.currentRatio = row.currentAssets > 0 ? divide(row.currentAssets, row.currentLiabilities) : null;
-    row.quickRatio = divide(row.currentAssets - row.inventory, row.currentLiabilities);
+    row.quickRatio = Number.isFinite(row.currentAssets) && Number.isFinite(row.inventory)
+      ? divide(row.currentAssets - row.inventory, row.currentLiabilities) : null;
     row.debtEquity = divide(row.debt, row.equity);
     const ebitdaProxy = row.operatingIncome * 1.15;
     row.netDebtEbitda = divide(row.debt - row.cash, ebitdaProxy);
     row.interestCoverage = divide(row.operatingIncome, row.interestExpense);
     row.cfoNetIncome = divide(row.cfo, row.netIncome);
-    row.fcfMargin = finite(divide(row.fcf, row.revenue) * 100);
-    row.fcfYield = finite(divide(row.fcf, company.marketCap) * 100);
-    row.capexCfo = finite(divide(row.capex, row.cfo) * 100);
+    row.fcfMargin = scale(divide(row.fcf, row.revenue), 100);
+    row.fcfYield = scale(divide(row.fcf, company.marketCap), 100);
+    row.capexCfo = scale(divide(row.capex, row.cfo), 100);
     row.bvps = divide(row.equity, row.shares);
     row.inventoryGrowth = percentChange(row.inventory, previous?.inventory);
     row.shareChange = percentChange(row.shares, previous?.shares);
@@ -70,8 +61,8 @@ export function calculateFinancials(company) {
     pb: divide(company.price, latest.bvps), ps: divide(company.marketCap, latest.revenue),
     evEbitda: divide(company.marketCap + latest.debt - latest.cash, ebitdaProxy),
     pFcf: divide(company.marketCap, latest.fcf),
-    dividendYield: Number.isFinite(company.dividendYield) && company.dividendYield > 0 ? company.dividendYield * 100 : finite(divide(latest.dividends, company.price) * 100),
-    dividendPayout: finite(divide(latest.dividends, latest.eps) * 100)
+    dividendYield: Number.isFinite(company.dividendYield) && company.dividendYield > 0 ? company.dividendYield * 100 : scale(divide(latest.dividends, company.price), 100),
+    dividendPayout: scale(divide(latest.dividends, latest.eps), 100)
   };
   const values = key => rows.map(row => row[key]);
   const metrics = {
@@ -86,5 +77,5 @@ export function calculateFinancials(company) {
   history.revenueGrowth = history.yoyRevenue;
   history.epsGrowth = history.yoyEps;
   history.pe = rows.map((row, index) => row.eps > 0 ? company.price / row.eps : null);
-  return { company, rows, latest, ratios, history, metrics, trend: directionTrend };
+  return { company, rows, latest, ratios, history, metrics };
 }

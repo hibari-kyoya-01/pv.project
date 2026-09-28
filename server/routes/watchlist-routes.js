@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { pool } from '../db/pool.js';
 import { requireFirebaseUser } from '../middleware/require-firebase-user.js';
 import { addWatchlistTicker, listWatchlist, removeWatchlistTicker } from '../repositories/watchlist-repository.js';
 import { getCompanyForWatchlist, normalizeTicker } from '../services/stock-service.js';
@@ -12,6 +13,7 @@ watchlistRouter.get('/', async (req, res, next) => {
 });
 
 watchlistRouter.put('/:ticker', async (req, res, next) => {
+  if (!pool) return res.status(503).json({ error: 'Watchlists require a configured PostgreSQL database.' });
   try {
     const ticker = normalizeTicker(req.params.ticker);
     await getCompanyForWatchlist(ticker);

@@ -20,11 +20,12 @@ export function createApp() {
   app.use(helmet({
     contentSecurityPolicy: { directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net'],
+      scriptSrc: ["'self'", 'https://cdn.tailwindcss.com', 'https://cdn.jsdelivr.net'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
       connectSrc: ["'self'", 'https://financialmodelingprep.com', 'https://query1.finance.yahoo.com', 'https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com'],
-      imgSrc: ["'self'", 'data:'], objectSrc: ["'none'"], frameAncestors: ["'none'"]
+      imgSrc: ["'self'", 'data:'], objectSrc: ["'none'"], frameAncestors: ["'none'"],
+      upgradeInsecureRequests: config.nodeEnv === 'production' ? [] : null
     } },
     crossOriginEmbedderPolicy: false
   }));
@@ -49,7 +50,6 @@ export function createApp() {
   app.use('/api/stocks', stocksLimiter, stockRouter);
   app.use('/api/watchlist', watchlistRouter);
   app.get('/', (_req, res) => res.sendFile(resolve(here, 'index.html')));
-  app.use('/css', express.static(resolve(here, 'css'), { maxAge: config.nodeEnv === 'production' ? '1h' : 0, etag: true }));
   app.use('/app', express.static(resolve(here, 'client'), { index: 'index.html', maxAge: config.nodeEnv === 'production' ? '1h' : 0, etag: true }));
   app.use('/api', (_req, res) => res.status(404).json({ error: 'API endpoint not found.' }));
   app.use((error, _req, res, _next) => {

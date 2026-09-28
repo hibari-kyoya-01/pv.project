@@ -1,5 +1,3 @@
-import { config } from '../config.js';
-
 const BASE = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/';
 const MODULES = 'price,assetProfile,defaultKeyStatistics,summaryDetail,financialData,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory';
 const raw = value => value && typeof value === 'object' && 'raw' in value ? Number(value.raw) : Number(value);
@@ -49,7 +47,7 @@ export async function fetchYahooCompany(ticker) {
         debt: number(balanceRow.longTermDebt, balanceRow.longTermDebtAndCapitalLeaseObligation) + number(balanceRow.shortLongTermDebt, balanceRow.shortTermDebt),
         cash: number(balanceRow.cash, balanceRow.cashAndCashEquivalents), cfo, capex, fcf: cfo - capex,
         interestExpense: Math.abs(number(statement.interestExpense)), shares,
-        // Yahoo history does not expose a reliable per-share dividend field here.
+        // TODO: Verify Yahoo's current cash-flow module key before mapping a historical per-share value.
         dividends: number(cashRow.dividendsPaid, cashRow.commonDividendsPaid) && shares > 0 ? Math.abs(number(cashRow.dividendsPaid, cashRow.commonDividendsPaid)) / shares : 0
       };
     }).filter(row => row.year > 0 && row.revenue > 0).sort((a, b) => a.year - b.year);

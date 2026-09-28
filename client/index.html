@@ -4,9 +4,9 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b1020"><meta name="description" content="A five-year stock fundamentals dashboard inspired by Buffett and Lynch.">
   <title>Stock Fundamental Analyzer</title>
-  <script>tailwind={config:{darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','ui-sans-serif','system-ui']},colors:{ink:'#0b1020',mint:'#7cf2c2'}}}}};try{if(matchMedia('(prefers-color-scheme: light)').matches)document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark')}catch(e){document.documentElement.classList.add('dark')}</script>
+  <script src="js/bootstrap.js"></script><script src="js/tailwind-config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" integrity="sha384-NrKB+u6Ts6AtkIhwPixiKTzgSKNblyhlk0Sohlgar9UHUBzai/sgnNNWWd291xqt" crossorigin="anonymous"></script>
   <script defer src="js/config.js"></script><script defer src="js/api.js"></script><script defer src="js/ui.js"></script><script defer src="js/firebase-auth.js"></script><script defer src="js/app.js"></script>
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased transition-colors dark:bg-[#090e1b] dark:text-slate-100">

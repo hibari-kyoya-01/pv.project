@@ -51,7 +51,7 @@ A modular single-page stock research app with a Node.js/Express API, PostgreSQL 
    npm run dev
    ```
 
-   Open `http://localhost:3000` for the Orbit Stock landing page and analyzer. The dashboard is also available directly at `http://localhost:3000/app/`; both pages use the same API. `npm start` runs the same server without file watching. `npm run check` performs JavaScript syntax checks.
+   Open `http://localhost:3000` for the Orbit Stock landing page and analyzer. The dashboard is also available directly at `http://localhost:3000/app/`; both pages use the same API. `npm start` runs the same server without file watching. `npm run check` performs JavaScript syntax checks, and `npm test` runs the built-in Node test suite.
 
 ## Project structure
 
@@ -59,8 +59,9 @@ A modular single-page stock research app with a Node.js/Express API, PostgreSQL 
 client/
   index.html
   css/style.css
-  js/                 SPA state, API client, finance calculators, analyzers, UI and Firebase Auth
-server.js             Express entry point, security middleware, static client and API routes
+  js/                 SPA state, API client, UI and Firebase Auth
+app.js                Express app factory, middleware, static client and API routes
+server.js             HTTP listener and graceful shutdown
 server/
   config.js
   db/pool.js
@@ -90,6 +91,8 @@ Watchlist routes require `Authorization: Bearer <Firebase ID token>`; the authen
 
 Analysis rules and caveats are specified in [`skills/stock_analysis.md`](skills/stock_analysis.md). Backend calculations are the canonical API output. Data sources and simulated status are returned separately. Financial statements are kept in source currency and fiscal year; the app does not silently convert currencies.
 
+Tailwind is loaded from its browser CDN for this prototype. [Tailwind documents the Play CDN as development-only](https://tailwindcss.com/docs/installation/play-cdn); production deployments should build and serve a static CSS bundle. PostgreSQL's `financial_ratios` table is retained for compatibility with existing databases, but the app no longer writes it: ratios are cheap to recompute from cached statements, and there is no current read path for the table.
+
 - Revenue/EPS/book-value CAGR uses the actual fiscal-year difference between first and last observations.
 - ROIC uses estimated NOPAT at a 21% tax rate and invested capital; EBITDA is approximated from operating income. These are explicitly estimated ratios.
 - Owner earnings begins with CFO less total CapEx. DCF assumptions are 10-year projection, growth capped at 8%, 10% discount, and 12× terminal multiple.
@@ -99,4 +102,4 @@ Analysis rules and caveats are specified in [`skills/stock_analysis.md`](skills/
 
 ## Operational notes
 
-All market data providers and the public CORS proxy can impose access, coverage, latency, or rate limits. For production, use a licensed provider with a server-side key, a managed PostgreSQL service, HTTPS, and deployment-managed Firebase service credentials. The app includes rate limiting, Helmet security headers, request timeouts, ticker validation, and explicit fallback status; it does not promise real-time quotes.
+Market data providers can impose access, coverage, latency, or rate limits. For production, use a licensed provider with a server-side key, a managed PostgreSQL service, HTTPS, and deployment-managed Firebase service credentials. The app includes rate limiting, Helmet security headers, request timeouts, ticker validation, and explicit fallback status; it does not promise real-time quotes.

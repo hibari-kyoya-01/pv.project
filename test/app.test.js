@@ -25,3 +25,18 @@ test('createApp serves health and JSON API errors', async () => {
     assert.deepEqual(await missing.json(), { error: 'API endpoint not found.' });
   });
 });
+
+test('both entry points serve their local CSS and JavaScript assets', async () => {
+  await withServer(async base => {
+    for (const path of ['/', '/app/', '/app/css/style.css', '/app/js/api.js', '/app/js/landing.js', '/app/js/bootstrap.js']) {
+      const response = await fetch(`${base}${path}`);
+      assert.equal(response.status, 200, `${path} should exist`);
+    }
+    const rootHtml = await (await fetch(base)).text();
+    assert.match(rootHtml, /\/app\/css\/style\.css/);
+    assert.doesNotMatch(rootHtml, /href="css\/style\.css"/);
+    assert.doesNotMatch(rootHtml, /<script>/);
+    const csp = (await fetch(base)).headers.get('content-security-policy');
+    assert.doesNotMatch(csp, /script-src[^;]*'unsafe-inline'/);
+  });
+});

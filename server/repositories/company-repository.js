@@ -44,11 +44,11 @@ export async function findFreshCompany(ticker, ttlSeconds) {
 
 export async function companyExists(ticker) {
   if (!pool) return false;
-  const result = await pool.query('SELECT 1 FROM companies WHERE ticker=$1', [ticker]);
+  const result = await pool.query("SELECT 1 FROM companies WHERE ticker=$1 AND data_mode <> 'simulated'", [ticker]);
   return result.rowCount > 0;
 }
 
-export async function saveCompany(company, ratioRows) {
+export async function saveCompany(company) {
   if (!pool) return false;
   const client = await pool.connect();
   try {
@@ -79,10 +79,6 @@ export async function saveCompany(company, ratioRows) {
       `, [company.ticker, row.year, row.revenue, row.grossProfit, row.operatingIncome, row.netIncome, row.eps,
         row.assets, row.equity, row.currentAssets, row.inventory, row.currentLiabilities, row.debt, row.cash,
         row.cfo, row.capex, row.fcf, row.interestExpense, row.shares, row.dividends, company.source]);
-    }
-    for (const row of ratioRows) {
-      await client.query(`INSERT INTO financial_ratios (ticker,fiscal_year,ratios,updated_at) VALUES ($1,$2,$3::jsonb,NOW())
-        ON CONFLICT (ticker,fiscal_year) DO UPDATE SET ratios=EXCLUDED.ratios,updated_at=NOW()`, [company.ticker, row.year, JSON.stringify(row.ratios)]);
     }
     await client.query('COMMIT');
     return true;
